@@ -1,0 +1,112 @@
+button {
+  font-size: 18px;
+  font-weight: bold;
+  color: #fff;
+  padding: 12px 30px;
+  border-radius: 50px;
+  cursor: pointer;
+  margin: 20px;
+  transition: all 0.3s ease;
+}
+
+#generate-btn {
+  background-color: #1abc9c;
+}
+
+#generate-btn:hover {
+  background-color: #16a085;
+}
+
+#play-btn {
+  background-color: #1a3abc;
+}
+
+#play-btn:hover {
+  background-color: #0d237c;
+}
+
+#start-btn {
+  background-color: #3498db;
+}
+
+#start-btn:hover {
+  background-color: #2980b9;
+}
+
+#stop-btn {
+  background-color: #e74c3c;
+}
+
+#stop-btn:hover {
+  background-color: #c0392b;
+}
+
+.note {
+  background-color: #f2f2f2;
+  border: 2px solid #ddd;
+  border-radius: 10px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.note p {
+  font-size: 24px;
+  font-weight: bold;
+  color: #555;
+}
+
+.seq {
+  margin: 5px 5px 15px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.seq ul {
+  display: flex;
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 50px;
+}
+
+.p {
+  font-size: 240px;
+  font-weight: bold;
+}
+
+
+div[class*="note-"] {
+  font-size: 18px;
+  font-weight: bold;
+  color: #9a2525;
+  max-width: 300px;
+  margin: 3px 3px 10px;
+  padding: 10px;
+  border: 2px solid #ddd;
+  border-radius: 10px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+
+}
+
+.tone-octave{
+  color: #887c7c;
+  font-size: 15px;
+}
+
+div[class*="matched"] {
+background-color: #8fec8f;
+  border: 2px solid #45bd00;
+  color: #9a2525;
+}
+
+.success-reward {
+  color: white;
+  background-color: green;
+  padding: 10px;
+  border-radius: 5px;
+  margin-top: 10px;
+}
