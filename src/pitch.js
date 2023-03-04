@@ -5,73 +5,80 @@ import './pithc.css';
 class SoundDetector extends Component {
     constructor(props) {
         super(props);
-        const buflen = 2048;
-        this.changeNoteInState = this.changeNoteInState.bind(this)
-        this.updatePitch = this.updatePitch.bind(this)
-        let notesToMimic = localStorage.getItem("notesToMimic")
-        if (!notesToMimic) {
-            notesToMimic = JSON.stringify(["C-5", "D-5", "E-5", "D-5"])
-            localStorage.setItem("notesToMimic", notesToMimic)
+        const BUFLEN = 2048;
+        
+        this.changeNoteOnState = this.changeNoteOnState.bind(this)
+        this.newIncomingPitch = this.newIncomingPitch.bind(this)
+        
+        let sequenceToMimic = localStorage.getItem("sequenceToMimic")
+        if (!sequenceToMimic) {
+            sequenceToMimic = JSON.stringify(["C-5", "D-5", "E-5", "D-5"])
+            localStorage.setItem("sequenceToMimic", sequenceToMimic)
         }
+
+        const noteFrequencies = [
+            // {name: 'C-3', frequency: 130.81, index: 48},
+            // {name: 'C♯/D♭-3', frequency: 138.59, index: 49},
+            {name: 'D-3', frequency: 146.83, index: 50},
+            {name: 'D♯/E♭-3', frequency: 155.56, index: 51},
+            {name: 'E-3', frequency: 164.81, index: 52},
+            {name: 'F-3', frequency: 174.61, index: 53},
+            {name: 'F♯/G♭-3', frequency: 185.00, index: 54},
+            {name: 'G-3', frequency: 196.00, index: 55},
+            {name: 'G♯/A♭-3', frequency: 207.65, index: 56},
+            {name: 'A-3', frequency: 220.00, index: 57},
+            {name: 'A♯/B♭-3', frequency: 233.08, index: 58},
+            {name: 'B-3', frequency: 246.94, index: 59},
+            {name: 'C-4', frequency: 261.63, index: 60},
+            {name: 'C♯/D♭-4', frequency: 277.18, index: 61},
+            {name: 'D-4', frequency: 293.66, index: 62},
+            {name: 'D♯/E♭-4', frequency: 311.13, index: 63},
+            {name: 'E-4', frequency: 329.63, index: 64},
+            {name: 'F-4', frequency: 349.23, index: 65},
+            {name: 'F♯/G♭-4', frequency: 369.99, index: 66},
+            {name: 'G-4', frequency: 392.00, index: 67},
+            {name: 'G♯/A♭-4', frequency: 415.30, index: 68},
+            {name: 'A-4', frequency: 440.00, index: 69},
+            {name: 'A♯/B♭-4', frequency: 466.16, index: 70},
+            {name: 'B-4', frequency: 493.88, index: 71},
+            {name: 'C-5', frequency: 523.25, index: 72},
+            {name: 'C♯/D♭-5', frequency: 554.37, index: 73},
+            {name: 'D-5', frequency: 587.33, index: 74},
+            {name: 'D♯/E♭-5', frequency: 622.25, index: 75},
+            {name: 'E-5', frequency: 659.25, index: 76},
+            {name: 'F-5', frequency: 698.46, index: 77},
+            {name: 'F♯/G♭-5', frequency: 739.99, index: 78},
+            {name: 'G-5', frequency: 783.99, index: 79},
+            {name: 'G♯/A♭-5', frequency: 830.61, index: 80},
+            {name: 'A-5', frequency: 880.00, index: 81},
+            {name: 'A♯/B♭-5', frequency: 932.33, index: 82},
+            {name: 'B-5', frequency: 987.77, index: 83},
+            {name: 'C-6', frequency: 1046.50, index: 84},
+            {name: 'C♯/D♭-6', frequency: 1108.73, index: 85},
+            {name: 'D-6', frequency: 1174.66, index: 86},
+            {name: 'D♯/E♭-6', frequency: 1244.51, index: 87},
+            {name: 'E-6', frequency: 1318.51, index: 88},
+            {name: 'F-6', frequency: 1396.91, index: 89},
+        ];
         this.state = {
             audioContext: null,
+            progressColector: {
+                successes: 0,
+                retries: 0
+            },
+            noteFrequencies,
             mediaStream: null,
             source: null,
             analyser: null,
-            currentNote: '',
-            pendingNote: '',
+            lastNoteDetected: '',
             MAX_SIZE: null,
             rafID: null,
             isRecording: false,
-            buf: new Float32Array(buflen),
-            noteFrequencies: [
-                {name: 'C-3', frequency: 130.81, index: 48},
-                {name: 'C♯/D♭-3', frequency: 138.59, index: 49},
-                {name: 'D-3', frequency: 146.83, index: 50},
-                {name: 'D♯/E♭-3', frequency: 155.56, index: 51},
-                {name: 'E-3', frequency: 164.81, index: 52},
-                {name: 'F-3', frequency: 174.61, index: 53},
-                {name: 'F♯/G♭-3', frequency: 185.00, index: 54},
-                {name: 'G-3', frequency: 196.00, index: 55},
-                {name: 'G♯/A♭-3', frequency: 207.65, index: 56},
-                {name: 'A-3', frequency: 220.00, index: 57},
-                {name: 'A♯/B♭-3', frequency: 233.08, index: 58},
-                {name: 'B-3', frequency: 246.94, index: 59},
-                {name: 'C-4', frequency: 261.63, index: 60},
-                {name: 'C♯/D♭-4', frequency: 277.18, index: 61},
-                {name: 'D-4', frequency: 293.66, index: 62},
-                {name: 'D♯/E♭-4', frequency: 311.13, index: 63},
-                {name: 'E-4', frequency: 329.63, index: 64},
-                {name: 'F-4', frequency: 349.23, index: 65},
-                {name: 'F♯/G♭-4', frequency: 369.99, index: 66},
-                {name: 'G-4', frequency: 392.00, index: 67},
-                {name: 'G♯/A♭-4', frequency: 415.30, index: 68},
-                {name: 'A-4', frequency: 440.00, index: 69},
-                {name: 'A♯/B♭-4', frequency: 466.16, index: 70},
-                {name: 'B-4', frequency: 493.88, index: 71},
-                {name: 'C-5', frequency: 523.25, index: 72},
-                {name: 'C♯/D♭-5', frequency: 554.37, index: 73},
-                {name: 'D-5', frequency: 587.33, index: 74},
-                {name: 'D♯/E♭-5', frequency: 622.25, index: 75},
-                {name: 'E-5', frequency: 659.25, index: 76},
-                {name: 'F-5', frequency: 698.46, index: 77},
-                {name: 'F♯/G♭-5', frequency: 739.99, index: 78},
-                {name: 'G-5', frequency: 783.99, index: 79},
-                {name: 'G♯/A♭-5', frequency: 830.61, index: 80},
-                {name: 'A-5', frequency: 880.00, index: 81},
-                {name: 'A♯/B♭-5', frequency: 932.33, index: 82},
-                {name: 'B-5', frequency: 987.77, index: 83},
-                {name: 'C-6', frequency: 1046.50, index: 84},
-                {name: 'C♯/D♭-6', frequency: 1108.73, index: 85},
-                {name: 'D-6', frequency: 1174.66, index: 86},
-                {name: 'D♯/E♭-6', frequency: 1244.51, index: 87},
-                {name: 'E-6', frequency: 1318.51, index: 88},
-                {name: 'F-6', frequency: 1396.91, index: 89},
-            ],
-            notesPlayed: [],
-            notesToMimic: JSON.parse(notesToMimic),
-            slidingWindow: ["@", "#", "$", "%"],
-            sequenceIntervals: []
+            buf: new Float32Array(BUFLEN),
+            sequenceToMimic: JSON.parse(sequenceToMimic),
+            sequenceIntervals: [],
+            slidingNotesInput: ["@", "#", "$", "%"],
+            notesPlayed: []
         };
 
 
@@ -80,10 +87,10 @@ class SoundDetector extends Component {
     componentDidMount() {
         let urlWithQuery = window.location.href;
 
-// Get the base URL without the query string
+        // Get the base URL without the query string
         let params = new URLSearchParams(urlWithQuery.split('?')[1]);
 
-// Get the value of the 'param1' parameter
+        // Get the value of the 'param1' parameter
         let startValue = params.get('start');
 
         if (startValue) {
@@ -91,22 +98,22 @@ class SoundDetector extends Component {
             window.history.pushState({path: "http://localhost:3000"}, '', "http://localhost:3000");
         }
 
-        let item = localStorage.getItem("notesToMimic");
-        const notesToMimic = JSON.parse(item)
+        let item = localStorage.getItem("sequenceToMimic");
+        const sequenceToMimic = JSON.parse(item)
         this.setState({
-            notesToMimic,
-            sequenceIntervals: this.getDistanceByName(notesToMimic)
+            sequenceToMimic,
+            sequenceIntervals: this.getDistanceByName(sequenceToMimic)
         })
     }
 
     componentWillUnmount() {
-        localStorage.setItem("notesToMimic", JSON.stringify(this.state.notesToMimic))
+        localStorage.setItem("sequenceToMimic", JSON.stringify(this.state.sequenceToMimic))
         this.stopListening();
     }
 
     startListening = () => {
 
-        const rafID = setInterval(this.updatePitch, 150);
+        const rafID = setInterval(this.newIncomingPitch, 150);
 
         // Get audio context
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -115,8 +122,8 @@ class SoundDetector extends Component {
             MAX_SIZE: Math.max(4, Math.floor(audioContext.sampleRate / 5000)),	// corresponds to a 5kHz signal
             rafID,
             notesPlayed: [],
-            currentNote: '',
-            slidingWindow: ["@", "#", "$", "%"],
+            lastNoteDetected: '',
+            slidingNotesInput: ["@", "#", "$", "%"],
             isRecording: true
         })
 
@@ -156,13 +163,14 @@ class SoundDetector extends Component {
         }
 
         let notesGen = notes.map(n => n.name);
-        localStorage.setItem("notesToMimic", JSON.stringify(notesGen))
+        localStorage.setItem("sequenceToMimic", JSON.stringify(notesGen))
 
         const sequenceIntervals = this.getDistanceByName(notesGen);
         this.setState({
-            notesToMimic: notesGen,
+            sequenceToMimic: notesGen,
             sequenceIntervals
-        });
+        },this.playNotes);
+
     }
 
     getDistanceByName(namesArray) {
@@ -179,35 +187,19 @@ class SoundDetector extends Component {
             const idx2 = noteFrequencies.find(item => item.name === name2)?.index;
             result.push(idx2 - idx1)
         }
-        console.log(result)
+
         return result;
     }
-
-    getStepsBetweenKeys = (key1, key2) => {
-        const keys = ["C", "C♯/D♭", "D", "D♯/E♭", "E", "F", "F♯/G♭", "G", "G♯/A♭", "A", "A♯/B♭", "B"];
-        const key1Note = key1.slice(0, -1);
-        const key1Octave = parseInt(key1.slice(-1));
-        const key1Index = keys.indexOf(key1Note);
-
-        const key2Note = key2.slice(0, -1);
-        const key2Octave = parseInt(key2.slice(-1));
-        const key2Index = keys.indexOf(key2Note);
-
-        const key1MidiNote = (key1Octave + 1) * 12 + key1Index;
-        const key2MidiNote = (key2Octave + 1) * 12 + key2Index;
-
-        return key1MidiNote - key2MidiNote;
-    }
-
+    
     playNotes = () => {
-        let {notesToMimic} = this.state
+        let {sequenceToMimic} = this.state
         this.stopListening()
 
-        for (let i = 0; i < notesToMimic.length; i++) {
-            notesToMimic[i] = notesToMimic[i].replace('-', ''); // remove '-'
-            notesToMimic[i] = notesToMimic[i].replace('♯', '#'); // replace '♯' with '#'
-            notesToMimic[i] = notesToMimic[i].replace('♭', 'b'); // replace '♭' with 'b'
-            notesToMimic[i] = notesToMimic[i].replace('/', notesToMimic[i].charAt(notesToMimic[i].length - 1) + '/'); // add octave number
+        for (let i = 0; i < sequenceToMimic.length; i++) {
+            sequenceToMimic[i] = sequenceToMimic[i].replace('-', ''); // remove '-'
+            sequenceToMimic[i] = sequenceToMimic[i].replace('♯', '#'); // replace '♯' with '#'
+            sequenceToMimic[i] = sequenceToMimic[i].replace('♭', 'b'); // replace '♭' with 'b'
+            sequenceToMimic[i] = sequenceToMimic[i].replace('/', sequenceToMimic[i].charAt(sequenceToMimic[i].length - 1) + '/'); // add octave number
         }
 
         const synth = new Tone.Synth().toDestination();
@@ -215,15 +207,15 @@ class SoundDetector extends Component {
         let index = 0;
 
         const playNextNote = () => {
-            if (index < notesToMimic.length) {
-                synth.triggerAttackRelease(notesToMimic[index], duration);
+            if (index < sequenceToMimic.length) {
+                synth.triggerAttackRelease(sequenceToMimic[index], duration);
                 index++;
                 Tone.Transport.scheduleOnce(playNextNote, `+${duration}`);
             } else {
                 Tone.Transport.stop();
                 this.startListening()
 
-                const baseURL = "http://localhost:3000?start=1";
+                const baseURL = "http://localhost:3000?start=1";//replay is buggy. workaround.
                 window.history.pushState({path: baseURL}, '', baseURL);
                 window.location.reload()
 
@@ -298,14 +290,8 @@ class SoundDetector extends Component {
         return sampleRate / T0;
     }
 
-    noteFromPitch(frequency) {
-        const noteNum = 12 * (Math.log(frequency / 440) / Math.log(2));
-        return Math.round(noteNum) + 69;
-    }
-
-    updatePitch = () => {
+    newIncomingPitch = () => {
         const {analyser, buf, audioContext, noteFrequencies} = this.state;
-        let cycles = [];
 
         if (!analyser) return;
         analyser.getFloatTimeDomainData(buf);
@@ -315,46 +301,64 @@ class SoundDetector extends Component {
 
         let newNote, noteName
         if (pitch !== -1) {
-            newNote = this.noteFromPitch(pitch);
-            let frequencyFromNoteNumber = 440 * Math.pow(2, (newNote - 69) / 12);
-            let detune = Math.floor(1200 * Math.log(pitch / frequencyFromNoteNumber) / Math.log(2));
+            newNote = Math.round(12 * (Math.log(pitch / 440) / Math.log(2))) + 69;
+            // let frequencyFromNoteNumber = 440 * Math.pow(2, (newNote - 69) / 12);
+            // let detune = Math.floor(1200 * Math.log(pitch / frequencyFromNoteNumber) / Math.log(2));
             const obj = noteFrequencies.find(item => item.index === newNote);
             noteName = obj ? obj.name : null;
-            this.changeNoteInState(noteName)
+            this.changeNoteOnState(noteName)
         }
 
     }
 
-    changeNoteInState = (newNote) => {
-        const {currentNote, notesPlayed, notesToMimic, slidingWindow} = this.state;
-        slidingWindow.push(newNote)
-        slidingWindow.shift()
+    changeNoteOnState = (newNote) => {
+        const {lastNoteDetected, notesPlayed, sequenceToMimic, slidingNotesInput,  progressColector} = this.state;
+        slidingNotesInput.push(newNote)
+        slidingNotesInput.shift()
 
-        const isAllSame = slidingWindow.every((value, index, array) => value === array[0]);
-        const isChanged = (newNote && newNote !== currentNote)
+        const isAllSame = slidingNotesInput.every((value, index, array) => value === array[0]);
+        const isChanged = (newNote && newNote !== lastNoteDetected)
 
         //"isChanged" considering continues note
         if (!isChanged || !isAllSame) return;
 
         notesPlayed.push(newNote)
 
-        console.log("changing from " + currentNote + " to " + newNote)
+        console.log("changing from " + lastNoteDetected + " to " + newNote)
 
-        if (JSON.stringify(notesToMimic) === JSON.stringify(notesPlayed)) {
-            this.handleSuccess()
+        if (sequenceToMimic.length === notesPlayed.length) {
+            if (JSON.stringify(sequenceToMimic) === JSON.stringify(notesPlayed)) {
+                this.handleSuccess()
+            } else {
+                //retry
+               this.playNotes()
+
+                progressColector.retries++
+            }
         }
 
         this.setState({
-            currentNote: newNote,
-            notesPlayed
+            lastNoteDetected: newNote,
+            notesPlayed,
+            progressColector
         })
     }
 
     handleSuccess = () => {
+        //in avg play each sequence twice then move on
+        if (Math.random() > 0.5){
+            this.generateSequence() 
+        }else{
+            this.playNotes()
+        }
+        const { successes, retries } = this.state.progressColector;
         this.setState({
             showReward: true,
+            progressColector: {
+                successes: successes + 1,
+                retries: retries
+            }
         });
-        this.stopListening()
         setTimeout(() => {
             this.setState({
                 showReward: false,
@@ -363,17 +367,12 @@ class SoundDetector extends Component {
     };
 
     render() {
-        const {notesPlayed, notesToMimic, isRecording, sequenceIntervals} = this.state;
-        const baseNote = (notesToMimic.length) ? notesToMimic[0] : ''
-
-        // const intervals = notesToMimic.map((note, idx)=>{
-        //     if (idx === 0) return;
-        //     return this.getStepsBetweenKeys(notesToMimic[idx], notesToMimic[idx-1])
-        // })
+        const {notesPlayed, sequenceToMimic, isRecording, sequenceIntervals, progressColector: { successes, retries }} = this.state;
+        const baseNote = (sequenceToMimic.length) ? sequenceToMimic[0] : ''
 
         const noteSequence = notesPlayed.map((note, idx) => {
             const [noteName, octave] = note.split("-");
-            const isMatched = (notesPlayed[idx] === notesToMimic[idx]) ? "matched" : ""
+            const isMatched = (notesPlayed[idx] === sequenceToMimic[idx]) ? "matched" : ""
 
             return <div key={idx} className={"note-" + isMatched}>
                 <div className={"tone-name"}>
@@ -401,6 +400,9 @@ class SoundDetector extends Component {
                 <button id="play-btn" type="button" onClick={this.playNotes}>Play</button>
                 <button id="start-btn" type="button" onClick={this.startListening}>{"Start" + recSign}</button>
                 <button id="stop-btn" type="button" onClick={this.stopListening}>Stop</button>
+                <div className={"progressColector"}>
+                    {"successes: " + successes + ". retries: " + retries}
+                </div>
                 <div>
                     <div className={"sequence"}>
                         <h2>Sequence: {baseNote}</h2>
