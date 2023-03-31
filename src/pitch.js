@@ -6,10 +6,10 @@ class SoundDetector extends Component {
     constructor(props) {
         super(props);
         const BUFLEN = 2048;
-        
+
         this.changeNoteOnState = this.changeNoteOnState.bind(this)
         this.newIncomingPitch = this.newIncomingPitch.bind(this)
-        
+
         let sequenceToMimic = localStorage.getItem("sequenceToMimic")
         if (!sequenceToMimic) {
             sequenceToMimic = JSON.stringify(["C-5", "D-5", "E-5", "D-5"])
@@ -80,23 +80,9 @@ class SoundDetector extends Component {
             slidingNotesInput: ["@", "#", "$", "%"],
             notesPlayed: []
         };
-
-
     }
 
     componentDidMount() {
-        let urlWithQuery = window.location.href;
-
-        // Get the base URL without the query string
-        let params = new URLSearchParams(urlWithQuery.split('?')[1]);
-
-        // Get the value of the 'param1' parameter
-        let startValue = params.get('start');
-
-        if (startValue) {
-            this.startListening()
-            window.history.pushState({path: "http://localhost:3000"}, '', "http://localhost:3000");
-        }
 
         let item = localStorage.getItem("sequenceToMimic");
         const sequenceToMimic = JSON.parse(item)
@@ -190,40 +176,40 @@ class SoundDetector extends Component {
 
         return result;
     }
-    
-    playNotes = () => {
-        let {sequenceToMimic} = this.state
-        this.stopListening()
-
-        for (let i = 0; i < sequenceToMimic.length; i++) {
-            sequenceToMimic[i] = sequenceToMimic[i].replace('-', ''); // remove '-'
-            sequenceToMimic[i] = sequenceToMimic[i].replace('♯', '#'); // replace '♯' with '#'
-            sequenceToMimic[i] = sequenceToMimic[i].replace('♭', 'b'); // replace '♭' with 'b'
-            sequenceToMimic[i] = sequenceToMimic[i].replace('/', sequenceToMimic[i].charAt(sequenceToMimic[i].length - 1) + '/'); // add octave number
-        }
-
-        const synth = new Tone.Synth().toDestination();
-        const duration = "2n";
-        let index = 0;
-
-        const playNextNote = () => {
-            if (index < sequenceToMimic.length) {
-                synth.triggerAttackRelease(sequenceToMimic[index], duration);
-                index++;
-                Tone.Transport.scheduleOnce(playNextNote, `+${duration}`);
+    getFrequencies = (noteNames)  => {
+        const frequencies = [];
+        for (const noteName of noteNames) {
+            const note = this.state.noteFrequencies.find(n => n.name === noteName);
+            if (note) {
+                frequencies.push(note.frequency);
             } else {
-                Tone.Transport.stop();
-                this.startListening()
-
-                const baseURL = "http://localhost:3000?start=1";//replay is buggy. workaround.
-                window.history.pushState({path: baseURL}, '', baseURL);
-                window.location.reload()
-
+                console.log(`Note "${noteName}" not found`);
             }
-        };
-
-        Tone.Transport.scheduleOnce(playNextNote, `+${duration}`);
-        Tone.Transport.start();
+        }
+        return frequencies;
+    }
+    playNotes = () => {
+        this.stopListening()
+        const duration = 1000
+        const context = new AudioContext();
+        const sequenceToMimic = this.state.sequenceToMimic;
+        const frequencies = this.getFrequencies(sequenceToMimic);
+        const oscillator = context.createOscillator();
+        oscillator.type = 'triangle';
+        oscillator.frequency.setValueAtTime(frequencies[0], context.currentTime);
+        oscillator.connect(context.destination);
+        oscillator.start();
+        let index = 0;
+        const interval = setInterval(() => {
+            index++;
+            if (index >= frequencies.length) {
+                clearInterval(interval);
+                oscillator.stop();
+                this.startListening()
+                return;
+            }
+            oscillator.frequency.setValueAtTime(frequencies[index], context.currentTime);
+        }, duration);
 
     }
 
@@ -331,7 +317,7 @@ class SoundDetector extends Component {
                 this.handleSuccess()
             } else {
                 //retry
-               this.playNotes()
+                this.playNotes()
 
                 progressColector.retries++
             }
@@ -346,8 +332,9 @@ class SoundDetector extends Component {
 
     handleSuccess = () => {
         //in avg play each sequence twice then move on
-        if (Math.random() > 0.5){
-            this.generateSequence() 
+        const random = Math.random();
+        if (random > 0.5){
+            this.generateSequence()
         }else{
             this.playNotes()
         }
@@ -389,7 +376,7 @@ class SoundDetector extends Component {
         const intervalSeq = sequenceIntervals.map((interval, idx) => {
 
             return <div key={idx} className={"interval"}>
-                    {interval}
+                {interval}
             </div>
         })
 
